@@ -1,0 +1,30 @@
+from flask import Flask, jsonify, request
+import requests
+# Importa a função que criamos no arquivo parser.py
+from parser import processar_xml_roblox
+
+app = Flask(__name__)
+
+@app.route("/carregarasset", methods=["GET"])
+def carregar_asset():
+    asset_id = request.args.get("id")
+    if not asset_id:
+        return jsonify({"error": "ID não informado"}), 400
+
+    url = f"https://assetdelivery.roblox.com/v1/asset/?id={asset_id}"
+    headers = {"User-Agent": "RobloxStudio/WinInet"}
+
+    try:
+        response = requests.get(url, headers=headers, timeout=10)
+        if response.status_code != 200:
+            return jsonify({"error": "Falha ao baixar asset"}), 400
+
+        # Chama o parser limpo
+        partes = processar_xml_roblox(response.text)
+        return jsonify(partes)
+
+    except Exception as err:
+        return jsonify({"error": str(err)}), 500
+
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=5000)
